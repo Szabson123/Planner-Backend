@@ -38,8 +38,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     
+    # installed apps
     'rest_framework',
     'drf_spectacular',
+    
+    # 
+    'custom_user',
+    'plan',
 ]
 
 MIDDLEWARE = [
@@ -125,11 +130,16 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+AUTH_USER_MODEL = 'custom_user.CustomUser'
+
 
 # RESTFRAMEWORK
 
 REST_FRAMEWORK = {
-    # YOUR SETTINGS
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
