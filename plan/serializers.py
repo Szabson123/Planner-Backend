@@ -8,10 +8,13 @@ class ShiftSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Shift
-        fields = ['id', 'name', 'description', 'users']
+        fields = ['id', 'name', 'description', 'users', 'start_date', 'end_date']
 
 
 class EventSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    shift = ShiftSerializer(read_only=True)
+
     class Meta:
         model = Event
         fields = ['id', 'user', 'date', 'shift']

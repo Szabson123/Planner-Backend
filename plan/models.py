@@ -9,10 +9,9 @@ class Shift(models.Model):
     start_date = models.TimeField(null=True, blank=True)
     end_date = models.TimeField(null=True, blank=True)
 
+
 class Event(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='assigned_user', blank=True, null=True)
     date = models.DateField(null=True, blank=True)
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE, related_name='assigned_shift', null=True, blank=True)
     
-    class Meta:
-        ordering = ['date'] 
