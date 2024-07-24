@@ -2,15 +2,17 @@ from django.db import models
 from custom_user.models import CustomUser
 
 
+class Shift(models.Model):
+    users = models.ManyToManyField(CustomUser, blank=True, null=True)
+    name = models.CharField(max_length=255)
+    description = models.TextField(null=True, blank=True)
+    start_date = models.TimeField(null=True, blank=True)
+    end_date = models.TimeField(null=True, blank=True)
+
 class Event(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='assigned_user', blank=True, null=True)
+    date = models.DateField(null=True, blank=True)
+    shift = models.ForeignKey(Shift, on_delete=models.CASCADE, related_name='assigned_shift', null=True, blank=True)
     
-    SHIFT_NUMBER_CHOICE = [
-        ('0', 'none'),
-        ('1', '1'),
-        ('2', '2'),
-        ('3', '3'),
-    ]
-    
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    date = models.DateTimeField()
-    shift = models.CharField(max_length=1, choices=SHIFT_NUMBER_CHOICE, default='0')
+    class Meta:
+        ordering = ['date'] 
