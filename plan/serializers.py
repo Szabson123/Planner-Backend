@@ -3,7 +3,6 @@ from .models import Event, Shift
 from custom_user.serializers import UserSerializer
 from custom_user.models import CustomUser
 
-
 class ShiftSerializer(serializers.ModelSerializer):
     users = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all(), many=True)
 
@@ -13,10 +12,10 @@ class ShiftSerializer(serializers.ModelSerializer):
 
 class EventSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-    shift = ShiftSerializer(read_only=True)
+    shift_name = serializers.CharField(source='shift.name', read_only=True)
     start_time = serializers.TimeField()
     end_time = serializers.TimeField()
 
     class Meta:
         model = Event
-        fields = ['id', 'user', 'date', 'shift', 'start_time', 'end_time']
+        fields = ['id', 'user', 'date', 'shift_name', 'start_time', 'end_time']
