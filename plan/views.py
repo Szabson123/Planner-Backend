@@ -22,7 +22,6 @@ def days_in_month(year, month):
         return 31
     return (datetime(year, month + 1, 1) - timedelta(days=1)).day
 
-
 def rotate_working_hours(start_time, end_time):
     rotations = [
         ("06:00:00", "14:00:00"),
@@ -43,37 +42,39 @@ class GeneratePlannerView(APIView):
         shifts = Shift.objects.all()
         generated_events = []
         today = datetime.now().date()
-        current_date = today
+        
+        year = today.year
+        month = today.month + 1
+        if month > 12:
+            month = 1
+            year += 1
 
-        num_months = 3
-        for _ in range(num_months):
-            year = current_date.year
-            month = current_date.month
+        num_days_in_month = days_in_month(year, month)
+        current_date = datetime(year, month, 1).date()
 
-            num_days_in_month = days_in_month(year, month)
+        while current_date <= datetime(year, month, num_days_in_month).date():
+            if current_date.weekday() == 0:
+                for shift in shifts:
+                    shift.start_time, shift.end_time = rotate_working_hours(shift.start_time, shift.end_time)
+                    shift.save()
 
-            while current_date <= datetime(year, month, num_days_in_month).date():
-                if current_date.weekday() == 0 and current_date > today:
-                    for shift in shifts:
-                        shift.start_time, shift.end_time = rotate_working_hours(shift.start_time, shift.end_time)
-                        shift.save()
+            if current_date.weekday() < 5:
+                for shift in shifts:
+                    shift.refresh_from_db()
+                    users = shift.users.all()
+                    for user in users:
+                        event = Event.objects.create(
+                            user=user,
+                            date=current_date,
+                            shift=shift,
+                            start_time=shift.start_time,
+                            end_time=shift.end_time,
+                        )
+                        generated_events.append(event)
 
-                if current_date.weekday() < 5:
-                    for shift in shifts:
-                        shift.refresh_from_db()
-                        users = shift.users.all()
-                        for user in users:
-                            event = Event.objects.create(
-                                user=user,
-                                date=current_date,
-                                shift=shift,
-                                start_time=shift.start_time,
-                                end_time=shift.end_time,
-                            )
-                            generated_events.append(event)
-
-                current_date += timedelta(days=1)
-            current_date = datetime(year, month, num_days_in_month).date() + timedelta(days=1)
+            current_date += timedelta(days=1)
         
         serializer = EventSerializer(generated_events, many=True)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
