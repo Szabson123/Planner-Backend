@@ -23,4 +23,10 @@ class Event(models.Model):
         return f"{self.user.username} - {self.date} - {self.shift.name}"
         
 
+class GeneratedPlanner(models.Model):
+    year = models.IntegerField()
+    month = models.IntegerField()
+    generated_at = models.DateTimeField(auto_now_add=True)
     
+    class Meta:
+        unique_together = ('year', 'month')

@@ -3,7 +3,7 @@ from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from datetime import datetime, timedelta
-from .models import Event, Shift
+from .models import Event, Shift, GeneratedPlanner
 from .serializers import EventSerializer, ShiftSerializer
 
 
@@ -49,6 +49,10 @@ class GeneratePlannerView(APIView):
             month = 1
             year += 1
 
+        if GeneratedPlanner.objects.filter(year=year, month=month).exists():
+            return Response({"detail": "Grafik na ten miesiąc został już wygenerowany."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        
         num_days_in_month = days_in_month(year, month)
         current_date = datetime(year, month, 1).date()
 
@@ -73,6 +77,8 @@ class GeneratePlannerView(APIView):
                         generated_events.append(event)
 
             current_date += timedelta(days=1)
+        
+        GeneratedPlanner.objects.create(year=year, month=month)
         
         serializer = EventSerializer(generated_events, many=True)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
