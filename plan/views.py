@@ -3,18 +3,19 @@ from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from datetime import datetime, timedelta
-import pandas as pd
 from .models import Event, Shift
 from .serializers import EventSerializer, ShiftSerializer
-from custom_user.models import CustomUser
+
 
 class EventViewSet(viewsets.ModelViewSet):
     serializer_class = EventSerializer
     queryset = Event.objects.all()
 
+
 class ShiftViewSet(viewsets.ModelViewSet):
     serializer_class = ShiftSerializer
     queryset = Shift.objects.all()
+
 
 def days_in_month(year, month):
     if month == 12:
@@ -74,26 +75,6 @@ class GeneratePlannerView(APIView):
             current_date += timedelta(days=1)
         
         serializer = EventSerializer(generated_events, many=True)
-
-        # Generowanie pliku Excela
-        events_data = [
-            {
-                'User': event.user.username,
-                'Date': event.date,
-                'Shift': event.shift.name,
-                'Start Time': event.start_time,
-                'End Time': event.end_time,
-            }
-            for event in generated_events
-        ]
-
-        df = pd.DataFrame(events_data)
-        excel_file_path = "/tmp/generated_events.xlsx"
-        df.to_excel(excel_file_path, index=False)
-
-        with open(excel_file_path, "rb") as excel_file:
-            response = Response(excel_file.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-            response['Content-Disposition'] = f'attachment; filename="generated_events.xlsx"'
-            return response
-
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
