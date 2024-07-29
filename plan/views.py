@@ -3,7 +3,7 @@ from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from datetime import datetime, timedelta
-from .models import Event, Shift, GeneratedPlanner
+from .models import Event, Shift, GeneratedPlanner, FreeDay
 from .serializers import EventSerializer, ShiftSerializer
 
 
@@ -67,6 +67,9 @@ class GeneratePlannerView(APIView):
                     shift.refresh_from_db()
                     users = shift.users.all()
                     for user in users:
+                        if FreeDay.objects.filter(user=user, date=current_date):
+                            continue
+                        
                         event = Event.objects.create(
                             user=user,
                             date=current_date,
