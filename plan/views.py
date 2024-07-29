@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 
 from datetime import datetime, timedelta
-from .models import Event, Shift, GeneratedPlanner, FreeDay, Availability
+from .models import Event, Shift, GeneratedPlanner, FreeDay, Availability, ShiftBackup
 from .serializers import EventSerializer, ShiftSerializer, AvailabilitySerializer
 
 
@@ -58,7 +58,16 @@ class GeneratePlannerView(APIView):
         
         num_days_in_month = days_in_month(year, month)
         current_date = datetime(year, month, 1).date()
-
+        
+        for shift in shifts:
+            backup = ShiftBackup.objects.create(
+                start_time=shift.start_time,
+                end_time=shift.end_time,
+                name=shift.name, 
+                description =shift.description
+            )
+            backup.users.set(shift.users.all()) 
+        
         while current_date <= datetime(year, month, num_days_in_month).date():
             if current_date.weekday() == 0:
                 for shift in shifts:

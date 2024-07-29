@@ -11,6 +11,18 @@ class Shift(models.Model):
     
     def __str__(self):
         return self.name
+    
+
+class ShiftBackup(models.Model):
+    users = models.ManyToManyField(CustomUser, blank=True, null=True)
+    name = models.CharField(max_length=255, null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
+    start_time = models.TimeField(null=True, blank=True)
+    end_time = models.TimeField(null=True, blank=True)
+    
+    def __str__(self):
+        return self.name
+        
 
 class Event(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
