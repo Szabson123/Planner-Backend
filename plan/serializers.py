@@ -29,7 +29,7 @@ class FreeDaySerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'date']
         
 
-class AvailabilitySerialzier(serializers.ModelSerializer):
+class AvailabilitySerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     
     class Meta:

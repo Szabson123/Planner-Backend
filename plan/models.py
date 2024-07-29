@@ -33,9 +33,20 @@ class GeneratedPlanner(models.Model):
         
 
 class Availability(models.Model):
+    
+    ACCEPTANCE_CHOICES = [
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('rejected', 'Rejected'),
+    ]
+    
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     date = models.DateField(null=True, blank=True)
-    acceptance = models.BooleanField(default=False)
+    acceptance = models.CharField(
+        max_length=10,
+        choices=ACCEPTANCE_CHOICES,
+        default='pending'
+    )
     
 
 class FreeDay(models.Model):

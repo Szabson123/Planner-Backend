@@ -7,7 +7,7 @@ from rest_framework.decorators import action
 
 from datetime import datetime, timedelta
 from .models import Event, Shift, GeneratedPlanner, FreeDay, Availability
-from .serializers import EventSerializer, ShiftSerializer, AvailabilitySerialzier
+from .serializers import EventSerializer, ShiftSerializer, AvailabilitySerializer
 
 
 class EventViewSet(viewsets.ModelViewSet):
@@ -91,7 +91,7 @@ class GeneratePlannerView(APIView):
 
 
 class AvailabilityViewSet(viewsets.ModelViewSet):
-    serializer_class = AvailabilitySerialzier
+    serializer_class = AvailabilitySerializer
     queryset = Availability.objects.all()
     
     @action(detail=True, methods=['post'])
@@ -103,7 +103,7 @@ class AvailabilityViewSet(viewsets.ModelViewSet):
         if not start_time or not end_time: 
             return Response({'detail': 'Musisz godzine początkową i końcową'}, status=status.HTTP_400_BAD_REQUEST)
         
-        availability.acceptance = True
+        availability.acceptance = 'accepted'
         availability.save()
         
         Event.objects.create(
@@ -114,3 +114,12 @@ class AvailabilityViewSet(viewsets.ModelViewSet):
         )
         
         return Response({'status': 'acceptance set True Event Created'}, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['post'])
+    def set_acceptance_to_false(self, request, *args, **kwargs):
+        availability = self.get_object()
+        
+        availability.acceptance = 'rejected'
+        availability.save()
+        
+        return Response({'status': 'acceptance set as False'}, status=status.HTTP_200_OK)
