@@ -20,7 +20,7 @@ class Event(models.Model):
     end_time = models.TimeField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.user.username} - {self.date} - {self.shift.name}"
+        return f"{self.user.username} - {self.date}"
         
 
 class GeneratedPlanner(models.Model):

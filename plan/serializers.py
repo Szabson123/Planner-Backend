@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Event, Shift, FreeDay
+from .models import Event, Shift, FreeDay, Availability
 from custom_user.serializers import UserSerializer
 from custom_user.models import CustomUser
 
@@ -27,3 +27,11 @@ class FreeDaySerializer(serializers.ModelSerializer):
     class Meta:
         model = FreeDay
         fields = ['id', 'user', 'date']
+        
+
+class AvailabilitySerialzier(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    
+    class Meta:
+        model = Availability
+        fields = ['id', 'user', 'date', 'acceptance']

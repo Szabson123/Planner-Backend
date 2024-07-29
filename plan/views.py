@@ -1,10 +1,13 @@
 from django.shortcuts import render
 from rest_framework import viewsets, status
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.decorators import action
+
 from datetime import datetime, timedelta
-from .models import Event, Shift, GeneratedPlanner, FreeDay
-from .serializers import EventSerializer, ShiftSerializer
+from .models import Event, Shift, GeneratedPlanner, FreeDay, Availability
+from .serializers import EventSerializer, ShiftSerializer, AvailabilitySerialzier
 
 
 class EventViewSet(viewsets.ModelViewSet):
@@ -87,3 +90,27 @@ class GeneratePlannerView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
+class AvailabilityViewSet(viewsets.ModelViewSet):
+    serializer_class = AvailabilitySerialzier
+    queryset = Availability.objects.all()
+    
+    @action(detail=True, methods=['post'])
+    def set_acceptance_to_true(self, request, *args, **kwargs):
+        availability  = self.get_object()
+        start_time = request.data.get('start_time')
+        end_time = request.data.get('end_time')
+        
+        if not start_time or not end_time: 
+            return Response({'detail': 'Musisz godzine początkową i końcową'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        availability.acceptance = True
+        availability.save()
+        
+        Event.objects.create(
+            user=availability.user,
+            date=availability.date,
+            start_time=start_time,
+            end_time=end_time,
+        )
+        
+        return Response({'status': 'acceptance set True Event Created'}, status=status.HTTP_200_OK)
