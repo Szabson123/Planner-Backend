@@ -3,7 +3,7 @@ from rest_framework import viewsets, status
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view
 
 from datetime import datetime, timedelta
 from .models import Event, Shift, GeneratedPlanner, FreeDay, Availability, ShiftBackup
@@ -97,6 +97,37 @@ class GeneratePlannerView(APIView):
         
         serializer = EventSerializer(generated_events, many=True)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+
+
+@api_view(['POST'])
+def restore_shifts(request):
+    today = datetime.now().date()
+    year = today.year
+    month = today.month + 1
+    if month > 12:
+        month = 1
+        year += 1
+    Event.objects.filter(date__year=year, date__month=month).delete()
+
+    Shift.objects.all().delete()
+
+    backups = ShiftBackup.objects.all()
+    for backup in backups:
+        shift = Shift.objects.create(
+            start_time=backup.start_time,
+            end_time=backup.end_time,
+            name=backup.name,
+            description=backup.description
+        )
+        shift.users.set(backup.users.all())
+    
+    backups.delete()
+    
+    GeneratedPlanner.objects.filter(year=year, month=month).delete()
+
+    return Response({'status': 'Shifts restored to initial state'}, status=status.HTTP_200_OK)
+    
 
 
 class AvailabilityViewSet(viewsets.ModelViewSet):
