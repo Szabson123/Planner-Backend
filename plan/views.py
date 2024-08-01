@@ -7,7 +7,7 @@ from rest_framework.decorators import action, api_view
 
 from datetime import datetime, timedelta
 from .models import Event, Shift, GeneratedPlanner, FreeDay, Availability, ShiftBackup
-from .serializers import EventSerializer, ShiftSerializer, AvailabilitySerializer
+from .serializers import EventSerializer, ShiftSerializer, AvailabilitySerializer, FreeDaySerializer
 
 
 class EventViewSet(viewsets.ModelViewSet):
@@ -18,6 +18,11 @@ class EventViewSet(viewsets.ModelViewSet):
 class ShiftViewSet(viewsets.ModelViewSet):
     serializer_class = ShiftSerializer
     queryset = Shift.objects.all()
+    
+
+class FreeDayViewSet(viewsets.ModelViewSet):
+    serializer_class = FreeDaySerializer
+    queryset = FreeDay.objects.all()
 
 
 def days_in_month(year, month):

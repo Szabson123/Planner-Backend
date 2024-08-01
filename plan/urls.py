@@ -1,11 +1,12 @@
 from django.urls import path, include
-from .views import EventViewSet, ShiftViewSet, GeneratePlannerView, AvailabilityViewSet, restore_shifts
+from .views import EventViewSet, ShiftViewSet, GeneratePlannerView, AvailabilityViewSet, restore_shifts, FreeDayViewSet
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
 router.register('events', EventViewSet)
 router.register('shifts', ShiftViewSet)
-router.register('availability', AvailabilityViewSet)  # Poprawiona nazwa ViewSet
+router.register('availability', AvailabilityViewSet)
+router.register('free_day', FreeDayViewSet)# Poprawiona nazwa ViewSet
 
 urlpatterns = [
     path('', include(router.urls)),
