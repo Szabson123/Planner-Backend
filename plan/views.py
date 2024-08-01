@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action, api_view
 
 from datetime import datetime, timedelta
+
 from .models import Event, Shift, GeneratedPlanner, FreeDay, Availability, ShiftBackup
 from .serializers import EventSerializer, ShiftSerializer, AvailabilitySerializer, FreeDaySerializer
 
