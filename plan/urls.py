@@ -6,7 +6,7 @@ router = DefaultRouter()
 router.register('events', EventViewSet)
 router.register('shifts', ShiftViewSet)
 router.register('availability', AvailabilityViewSet)
-router.register('free_day', FreeDayViewSet)# Poprawiona nazwa ViewSet
+router.register('free_day', FreeDayViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

@@ -5,7 +5,15 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.decorators import action, api_view
 
+from django.db import transaction
+from django.db.models.signals import pre_save, post_save
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+
 from datetime import datetime, timedelta
+from django.db.models.signals import pre_save, post_save
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 
 from .models import Event, Shift, GeneratedPlanner, FreeDay, Availability, ShiftBackup
 from .serializers import EventSerializer, ShiftSerializer, AvailabilitySerializer, FreeDaySerializer
@@ -44,9 +52,17 @@ def rotate_working_hours(start_time, end_time):
     
     return datetime.strptime(rotations[next_index][0], "%H:%M:%S").time(), datetime.strptime(rotations[next_index][1], "%H:%M:%S").time()
 
+def pre_save_receiver(sender, instance, **kwargs):
+    pass
+
+def post_save_receiver(sender, instance, **kwargs):
+    pass
+
+
 class GeneratePlannerView(APIView):
     serializer_class = EventSerializer
-    
+
+    @method_decorator(csrf_exempt)
     def post(self, request, *args, **kwargs):
         shifts = Shift.objects.all()
         generated_events = []
@@ -61,46 +77,53 @@ class GeneratePlannerView(APIView):
         if GeneratedPlanner.objects.filter(year=year, month=month).exists():
             return Response({"detail": "Grafik na ten miesiąc został już wygenerowany."}, status=status.HTTP_400_BAD_REQUEST)
         
-        
         num_days_in_month = days_in_month(year, month)
         current_date = datetime(year, month, 1).date()
-        
-        for shift in shifts:
-            backup = ShiftBackup.objects.create(
-                start_time=shift.start_time,
-                end_time=shift.end_time,
-                name=shift.name, 
-                description =shift.description
-            )
-            backup.users.set(shift.users.all()) 
-        
-        while current_date <= datetime(year, month, num_days_in_month).date():
-            if current_date.weekday() == 0:
-                for shift in shifts:
-                    shift.start_time, shift.end_time = rotate_working_hours(shift.start_time, shift.end_time)
-                    shift.save()
 
-            if current_date.weekday() < 5:
-                for shift in shifts:
-                    shift.refresh_from_db()
-                    users = shift.users.all()
-                    for user in users:
-                        if FreeDay.objects.filter(user=user, date=current_date):
-                            continue
-                        
-                        event = Event.objects.create(
-                            user=user,
-                            date=current_date,
-                            shift=shift,
-                            start_time=shift.start_time,
-                            end_time=shift.end_time,
-                        )
-                        generated_events.append(event)
+        with transaction.atomic():
+            for shift in shifts:
+                backup = ShiftBackup.objects.create(
+                    start_time=shift.start_time,
+                    end_time=shift.end_time,
+                    name=shift.name, 
+                    description=shift.description
+                )
+                backup.users.set(shift.users.all())
+                
+            pre_save.disconnect(pre_save_receiver, sender=Event)
+            post_save.disconnect(post_save_receiver, sender=Event)
 
-            current_date += timedelta(days=1)
-        
-        GeneratedPlanner.objects.create(year=year, month=month)
-        
+            while current_date <= datetime(year, month, num_days_in_month).date():
+                if current_date.weekday() == 0:
+                    for shift in shifts:
+                        shift.start_time, shift.end_time = rotate_working_hours(shift.start_time, shift.end_time)
+                        shift.save()
+
+                if current_date.weekday() < 5:
+                    for shift in shifts:
+                        shift.refresh_from_db()
+                        users = shift.users.all()
+                        for user in users:
+                            if FreeDay.objects.filter(user=user, date=current_date).exists():
+                                continue
+                            
+                            event = Event(
+                                user=user,
+                                date=current_date,
+                                shift=shift,
+                                start_time=shift.start_time,
+                                end_time=shift.end_time,
+                            )
+                            generated_events.append(event)
+
+                current_date += timedelta(days=1)
+
+            Event.objects.bulk_create(generated_events)
+            GeneratedPlanner.objects.create(year=year, month=month)
+
+            pre_save.connect(pre_save_receiver, sender=Event)
+            post_save.connect(post_save_receiver, sender=Event)
+
         serializer = EventSerializer(generated_events, many=True)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
