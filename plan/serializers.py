@@ -35,3 +35,9 @@ class AvailabilitySerializer(serializers.ModelSerializer):
     class Meta:
         model = Availability
         fields = ['id', 'user', 'date', 'acceptance']
+
+
+class DataRangeSerializer(serializers.Serializer):
+    start_date = serializers.DateField()
+    end_date = serializers.DateField()
+    reason = serializers.CharField(max_length=255)

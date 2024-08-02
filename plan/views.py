@@ -16,7 +16,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
 from .models import Event, Shift, GeneratedPlanner, FreeDay, Availability, ShiftBackup
-from .serializers import EventSerializer, ShiftSerializer, AvailabilitySerializer, FreeDaySerializer
+from .serializers import EventSerializer, ShiftSerializer, AvailabilitySerializer, FreeDaySerializer, DataRangeSerializer
 
 
 class EventViewSet(viewsets.ModelViewSet):
@@ -32,6 +32,32 @@ class ShiftViewSet(viewsets.ModelViewSet):
 class FreeDayViewSet(viewsets.ModelViewSet):
     serializer_class = FreeDaySerializer
     queryset = FreeDay.objects.all()
+
+    def create(self, request, *args, **kwargs):
+        data_serializer = DataRangeSerializer(data=request.data)
+        if data_serializer.is_valid():
+            start_date = data_serializer.validated_data['start_date']
+            end_date = data_serializer.validated_data['end_date']
+            reason = data_serializer.validated_data['reason']
+            user = request.user if request.user.is_authenticated else None
+
+            if start_date > end_date:
+                return Response({'error': 'Start date must be before end date'}, status=status.HTTP_400_BAD_REQUEST)
+
+            current_date = start_date
+            free_days = []
+
+            while current_date <= end_date:
+                free_day = FreeDay(user=user, date=current_date, reason=reason)
+                free_days.append(free_day)
+                current_date += timedelta(days=1)
+
+            FreeDay.objects.bulk_create(free_days)
+
+            return Response({'message': 'Free days created successfully'}, status=status.HTTP_201_CREATED)
+        else:
+            return Response(data_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 def days_in_month(year, month):
