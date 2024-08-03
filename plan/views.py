@@ -15,8 +15,8 @@ from django.db.models.signals import pre_save, post_save
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import Event, Shift, GeneratedPlanner, FreeDay, Availability, ShiftBackup
-from .serializers import EventSerializer, ShiftSerializer, AvailabilitySerializer, FreeDaySerializer, DataRangeSerializer
+from .models import Event, Shift, GeneratedPlanner, FreeDay, Availability, ShiftBackup, WeekendEvent
+from .serializers import EventSerializer, ShiftSerializer, AvailabilitySerializer, FreeDaySerializer, DataRangeSerializer, WeekendEventSerializer
 
 
 class EventViewSet(viewsets.ModelViewSet):
@@ -188,6 +188,11 @@ def restore_shifts(request):
 class AvailabilityViewSet(viewsets.ModelViewSet):
     serializer_class = AvailabilitySerializer
     queryset = Availability.objects.all()
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(user=request.user if request.user.is_authenticated else None)
     
     @action(detail=True, methods=['post'])
     def set_acceptance_to_true(self, request, *args, **kwargs):
@@ -196,12 +201,12 @@ class AvailabilityViewSet(viewsets.ModelViewSet):
         end_time = request.data.get('end_time')
         
         if not start_time or not end_time: 
-            return Response({'detail': 'Musisz godzine początkową i końcową'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'Musisz podać godzine początkową i końcową'}, status=status.HTTP_400_BAD_REQUEST)
         
         availability.acceptance = 'accepted'
         availability.save()
         
-        Event.objects.create(
+        WeekendEvent.objects.create(
             user=availability.user,
             date=availability.date,
             start_time=start_time,

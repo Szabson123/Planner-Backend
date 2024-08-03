@@ -21,6 +21,17 @@ class EventSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'date', 'shift_name', 'start_time', 'end_time']
 
 
+class WeekendEventSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    shift_name = serializers.CharField(source='shift.name', read_only=True)
+    start_time = serializers.TimeField()
+    end_time = serializers.TimeField()
+
+    class Meta:
+        model = Event
+        fields = ['id', 'user', 'date', 'shift_name', 'start_time', 'end_time']
+
+
 class FreeDaySerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     
