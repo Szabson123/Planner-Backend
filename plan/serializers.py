@@ -45,7 +45,8 @@ class AvailabilitySerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Availability
-        fields = ['id', 'user', 'date', 'acceptance']
+        fields = ['id', 'date', 'acceptance', 'user']
+        read_only_fields = ['user']
 
 
 class DataRangeSerializer(serializers.Serializer):

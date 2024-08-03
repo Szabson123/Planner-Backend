@@ -193,6 +193,7 @@ class AvailabilityViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save(user=request.user if request.user.is_authenticated else None)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
     
     @action(detail=True, methods=['post'])
     def set_acceptance_to_true(self, request, *args, **kwargs):

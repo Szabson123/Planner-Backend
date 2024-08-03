@@ -67,7 +67,9 @@ class Availability(models.Model):
     acceptance = models.CharField(
         max_length=10,
         choices=ACCEPTANCE_CHOICES,
-        default='pending'
+        default='pending',
+        null=True,
+        blank=True
     )
     
 
