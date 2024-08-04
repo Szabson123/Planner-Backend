@@ -11,5 +11,6 @@ urlpatterns = [
     
     # my apps urls
     path('planner/', include('plan.urls')),
-    path('users/', include('custom_user.urls'))
+    path('users/', include('custom_user.urls')),
+    path('auth/', include('custom_auth.urls'))
 ]
