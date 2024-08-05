@@ -38,8 +38,6 @@ class WeekendEvent(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     date = models.DateField(null=True, blank=True)
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE, null=True, blank=True)
-    start_time = models.TimeField(null=True, blank=True)
-    end_time = models.TimeField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.user.username} - {self.date}"

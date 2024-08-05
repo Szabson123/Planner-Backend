@@ -27,7 +27,11 @@ class EventViewSet(viewsets.ModelViewSet):
 class ShiftViewSet(viewsets.ModelViewSet):
     serializer_class = ShiftSerializer
     queryset = Shift.objects.all()
-    
+
+class WeekendEventViewSet(viewsets.ModelViewSet):
+    serializer_class = WeekendEventSerializer
+    queryset = WeekendEvent.objects.all()
+
 
 class FreeDayViewSet(viewsets.ModelViewSet):
     serializer_class = FreeDaySerializer
