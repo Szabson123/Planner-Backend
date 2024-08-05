@@ -91,6 +91,7 @@ class GeneratePlannerView(APIView):
     @method_decorator(csrf_exempt)
     def post(self, request, *args, **kwargs):
         shifts = Shift.objects.all()
+        generated_weekends = []
         generated_events = []
         today = datetime.now().date()
         
@@ -141,10 +142,22 @@ class GeneratePlannerView(APIView):
                                 end_time=shift.end_time,
                             )
                             generated_events.append(event)
+                else:
+                    for shift in shifts:
+                        shift.refresh_from_db()
+                        users = shift.users.all()
+                        for user in users:
+                            weekend_event = WeekendEvent(
+                                user=user,
+                                date=current_date,
+                                shift=shift,
+                            )
+                            generated_weekends.append(weekend_event)
 
                 current_date += timedelta(days=1)
 
             Event.objects.bulk_create(generated_events)
+            WeekendEvent.objects.bulk_create(generated_weekends)
             GeneratedPlanner.objects.create(year=year, month=month)
 
             pre_save.connect(pre_save_receiver, sender=Event)
