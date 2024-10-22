@@ -69,39 +69,6 @@ def days_in_month(year, month):
         return 31
     return (datetime(year, month + 1, 1) - timedelta(days=1)).day
 
-def rotate_working_hours(start_time, end_time):
-    rotations = [
-        ("06:00:00", "14:00:00"),
-        ("22:00:00", "06:00:00"),
-        ("14:00:00", "22:00:00")
-    ]
-    
-    current_shift = (start_time.strftime("%H:%M:%S"), end_time.strftime("%H:%M:%S"))
-    current_index = rotations.index(current_shift)
-    next_index = (current_index + 1) % len(rotations)
-    
-    return datetime.strptime(rotations[next_index][0], "%H:%M:%S").time(), datetime.strptime(rotations[next_index][1], "%H:%M:%S").time()
-
-def pre_save_receiver(sender, instance, **kwargs):
-    pass
-
-def post_save_receiver(sender, instance, **kwargs):
-    pass
-
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from django.db import transaction
-from datetime import datetime, timedelta
-from .models import Event, Shift, GeneratedPlanner, ShiftBackup, WeekendEvent
-from .serializers import EventSerializer
-
-
-def days_in_month(year, month):
-    if month == 12:
-        return 31
-    return (datetime(year, month + 1, 1) - timedelta(days=1)).day
-
 
 def rotate_working_hours(start_time, end_time):
     rotations = [
@@ -123,7 +90,7 @@ class GeneratePlannerView(APIView):
     def post(self, request, *args, **kwargs):
         today = datetime.now().date()
         year = today.year
-        month = today.month + 1  # Zawsze generujemy na kolejny miesiąc
+        month = today.month - 1  # Zawsze generujemy na kolejny miesiąc
         
         if month > 12:
             month = 1
@@ -134,81 +101,105 @@ class GeneratePlannerView(APIView):
             return Response({"detail": "Grafik na ten miesiąc został już wygenerowany."}, status=status.HTTP_400_BAD_REQUEST)
 
         num_days_in_month = days_in_month(year, month)
-        current_date = datetime(year, month, 1).date()
 
-        shifts = Shift.objects.all()
+        # Optymalizacja: użycie prefetch_related, aby pobrać powiązanych użytkowników jednym zapytaniem
+        shifts = Shift.objects.prefetch_related('users').all()
         generated_events = []
         generated_weekends = []
 
-        # Zapisz końcowe godziny pracy dla każdej zmiany z poprzedniego miesiąca
+        # Pobieranie ostatnich eventów zmian jednym zapytaniem
         last_day_of_prev_month = datetime(year, month, 1) - timedelta(days=1)
+        events_on_last_day = Event.objects.filter(date=last_day_of_prev_month).select_related('shift')
+        shift_last_events = {}
+        for event in events_on_last_day:
+            shift_last_events[event.shift_id] = event
+
         shift_hours = {}
 
         for shift in shifts:
-            last_shift_of_prev_month = Event.objects.filter(shift=shift, date=last_day_of_prev_month).last()
-            if last_shift_of_prev_month:
-                shift_hours[shift.id] = (last_shift_of_prev_month.start_time, last_shift_of_prev_month.end_time)
+            last_shift_event = shift_last_events.get(shift.id)
+            if last_shift_event:
+                shift_hours[shift.id] = (last_shift_event.start_time, last_shift_event.end_time)
             else:
-                # Ustaw domyślne godziny startowe dla zmiany, jeśli brak grafików z poprzedniego miesiąca
+                # Ustaw domyślne godziny startowe dla zmiany, jeśli brak eventów z poprzedniego miesiąca
                 shift_hours[shift.id] = (shift.start_time, shift.end_time)
 
         # Logika generowania grafików
-        with transaction.atomic():
-            # Backup zmiany przed aktualizacją
-            for shift in shifts:
-                backup = ShiftBackup.objects.create(
-                    start_time=shift.start_time,
-                    end_time=shift.end_time,
-                    name=shift.name, 
-                    description=shift.description,
-                )
-                backup.users.set(shift.users.all())  # Poprawka w przypisaniu użytkowników
+        try:
+            with transaction.atomic():
+                # Backup zmian przed aktualizacją
+                shift_backups = []
+                shift_backup_users = {}
+                for shift in shifts:
+                    backup = ShiftBackup(
+                        start_time=shift.start_time,
+                        end_time=shift.end_time,
+                        name=shift.name,
+                        description=shift.description,
+                    )
+                    shift_backups.append(backup)
+                    shift_backup_users[shift.name] = shift.users.all()
 
-            # Rotowanie godzin i generowanie grafików
-            for day in range(1, num_days_in_month + 1):
-                if current_date.weekday() == 0:  # Jeśli poniedziałek, rotujemy godziny dla każdej zmiany
-                    for shift in shifts:
-                        shift_hours[shift.id] = rotate_working_hours(*shift_hours[shift.id])
+                # Masowe tworzenie kopii zapasowych zmian
+                ShiftBackup.objects.bulk_create(shift_backups)
 
-                # Dni robocze (poniedziałek-piątek)
-                if current_date.weekday() < 5:
+                # Przypisanie użytkowników do kopii zapasowych
+                backups = ShiftBackup.objects.filter(name__in=[shift.name for shift in shifts])
+                backup_dict = {backup.name: backup for backup in backups}
+                for name, users in shift_backup_users.items():
+                    backup = backup_dict.get(name)
+                    if backup:
+                        backup.users.set(users)
+
+                # Funkcja generująca eventy dla danego dnia
+                def generate_events_for_day(date, is_weekend):
                     for shift in shifts:
-                        shift.refresh_from_db()
                         users = shift.users.all()
+                        shift_start_time, shift_end_time = shift_hours[shift.id]
                         for user in users:
-                            event = Event(
-                                user=user,
-                                date=current_date,
-                                shift=shift,
-                                start_time=shift_hours[shift.id][0],
-                                end_time=shift_hours[shift.id][1],
-                            )
-                            generated_events.append(event)
-                else:
-                    # Weekendy
-                    for shift in shifts:
-                        shift.refresh_from_db()
-                        users = shift.users.all()
-                        for user in users:
-                            weekend_event = WeekendEvent(
-                                user=user,
-                                date=current_date,
-                                shift=shift,
-                            )
-                            generated_weekends.append(weekend_event)
+                            if is_weekend:
+                                weekend_event = WeekendEvent(
+                                    user=user,
+                                    date=date,
+                                    shift=shift,
+                                )
+                                generated_weekends.append(weekend_event)
+                            else:
+                                event = Event(
+                                    user=user,
+                                    date=date,
+                                    shift=shift,
+                                    start_time=shift_start_time,
+                                    end_time=shift_end_time,
+                                )
+                                generated_events.append(event)
 
-                current_date += timedelta(days=1)
+                # Rotowanie godzin i generowanie grafików na każdy dzień miesiąca
+                for day in range(1, num_days_in_month + 1):
+                    current_date = datetime(year, month, day).date()
 
-            # Zbiorcze zapisywanie eventów i grafików weekendowych
-            Event.objects.bulk_create(generated_events)
-            WeekendEvent.objects.bulk_create(generated_weekends)
-            GeneratedPlanner.objects.create(year=year, month=month)
+                    if current_date.weekday() == 0:  # Jeśli poniedziałek, rotujemy godziny dla każdej zmiany
+                        for shift in shifts:
+                            shift_hours[shift.id] = rotate_working_hours(*shift_hours[shift.id])
+
+                    # Dni robocze (poniedziałek-piątek) lub weekendy
+                    if current_date.weekday() < 5:
+                        generate_events_for_day(current_date, is_weekend=False)
+                    else:
+                        generate_events_for_day(current_date, is_weekend=True)
+
+                # Zbiorcze zapisywanie eventów i grafików weekendowych z użyciem batch_size
+                Event.objects.bulk_create(generated_events, batch_size=1000)
+                WeekendEvent.objects.bulk_create(generated_weekends, batch_size=1000)
+                GeneratedPlanner.objects.create(year=year, month=month)
+
+        except Exception as e:
+            return Response({"detail": f"Błąd podczas generowania grafików: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # Zwróć wygenerowane grafiki
         serializer = EventSerializer(generated_events, many=True)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    
 
 
 @api_view(['POST'])
