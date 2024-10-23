@@ -21,7 +21,7 @@ from .serializers import EventSerializer, ShiftSerializer, AvailabilitySerialize
 
 class EventViewSet(viewsets.ModelViewSet):
     serializer_class = EventSerializer
-    queryset = Event.objects.all()
+    queryset = Event.objects.select_related('shift', 'user').all()
 
 
 class ShiftViewSet(viewsets.ModelViewSet):
@@ -30,7 +30,7 @@ class ShiftViewSet(viewsets.ModelViewSet):
 
 class WeekendEventViewSet(viewsets.ModelViewSet):
     serializer_class = WeekendEventSerializer
-    queryset = WeekendEvent.objects.all()
+    queryset = WeekendEvent.objects.select_related('shift', 'user').all()
 
 
 class FreeDayViewSet(viewsets.ModelViewSet):
@@ -90,7 +90,7 @@ class GeneratePlannerView(APIView):
     def post(self, request, *args, **kwargs):
         today = datetime.now().date()
         year = today.year
-        month = today.month - 1  # Zawsze generujemy na kolejny miesiąc
+        month = today.month + 1  # Zawsze generujemy na kolejny miesiąc
         
         if month > 12:
             month = 1

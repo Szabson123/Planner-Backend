@@ -34,6 +34,13 @@ class Event(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.date}"
     
+    class Meta:
+        indexes = [
+            models.Index(fields=['date']),
+            models.Index(fields=['shift']),
+            models.Index(fields=['user']),
+        ]
+    
 class WeekendEvent(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     date = models.DateField(null=True, blank=True)
