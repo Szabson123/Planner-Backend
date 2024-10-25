@@ -128,7 +128,7 @@ class GeneratePlannerView(APIView):
     def post(self, request, *args, **kwargs):
         today = datetime.now().date()
         year = today.year
-        month = today.month
+        month = today.month + 2 #TUTAJ KONTROLA KTÓRY MIESIĄC GENERUJEMY
         
         if month > 12:
             month = 1
@@ -161,6 +161,9 @@ class GeneratePlannerView(APIView):
         # Logika generowania grafików
         try:
             with transaction.atomic():
+                
+                ShiftBackup.objects.all().delete()
+                
                 shift_backups = []
                 shift_backup_users = {}
                 for shift in shifts:
@@ -235,30 +238,45 @@ class GeneratePlannerView(APIView):
 
 
 @api_view(['POST'])
-def restore_shifts(request):
+def restore_plan(request):
     today = datetime.now().date()
     year = today.year
-    month = today.month + 1
+    month = today.month + 2
     if month > 12:
         month = 1
         year += 1
-    Event.objects.filter(date__year=year, date__month=month).delete()
+    try:
+        with transaction.atomic():
+            Event.objects.filter(date__year=year, date__month=month).delete()
+            WeekendEvent.objects.filter(date__year=year, date__month=month).delete()
 
-    Shift.objects.all().delete()
+            backups = ShiftBackup.objects.all()
+            
+            existing_shift_names = Shift.objects.values_list('name', flat=True)
+            for backup in backups:
+                if backup.name in existing_shift_names:
+                    shift = Shift.objects.get(name=backup.name)
+                    shift.start_time = backup.start_time
+                    shift.end_time = backup.end_time
+                    shift.description = backup.description
+                    shift.save()
+                    shift.users.set(backup.users.all())
+                else:
+                    shift = Shift.objects.create(
+                        start_time=backup.start_time,
+                        end_time=backup.end_time,
+                        name=backup.name,
+                        description=backup.description
+                    )
+                    shift.users.set(backup.users.all())
 
-    backups = ShiftBackup.objects.all()
-    for backup in backups:
-        shift = Shift.objects.create(
-            start_time=backup.start_time,
-            end_time=backup.end_time,
-            name=backup.name,
-            description=backup.description
-        )
-        shift.users.set(backup.users.all())
-    
-    backups.delete()
-    
-    GeneratedPlanner.objects.filter(year=year, month=month).delete()
+            backups.delete()
+
+            # Usunięcie wpisu GeneratedPlanner dla tego miesiąca
+            GeneratedPlanner.objects.filter(year=year, month=month).delete()
+
+    except Exception as e:
+        return Response({"detail": f"Błąd podczas przywracania planu: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     return Response({'status': 'Shifts restored to initial state'}, status=status.HTTP_200_OK)
     
