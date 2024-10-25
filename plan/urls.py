@@ -1,5 +1,5 @@
 from django.urls import path, include
-from .views import EventViewSet, ShiftViewSet, GeneratePlannerView, AvailabilityViewSet, restore_shifts, FreeDayViewSet, WeekendEventViewSet
+from .views import EventViewSet, ShiftViewSet, GeneratePlannerView, AvailabilityViewSet, restore_shifts, FreeDayViewSet, WeekendEventViewSet, HolyDayViewSet
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
@@ -8,6 +8,7 @@ router.register('shifts', ShiftViewSet)
 router.register('availability', AvailabilityViewSet)
 router.register('free_day', FreeDayViewSet)
 router.register('weekend', WeekendEventViewSet)
+router.register('holyday', HolyDayViewSet)
 
 
 urlpatterns = [

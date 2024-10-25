@@ -84,8 +84,9 @@ class FreeDay(models.Model):
     date = models.DateField(null=True, blank=True)
     reason = models.CharField(max_length=255)
     
-    
-class HourDayCounter(models.Model):
+
+class HolyDay(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
-    month = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, null=True, blank=True)
+    date = models.DateField(null=True, blank=True)
     

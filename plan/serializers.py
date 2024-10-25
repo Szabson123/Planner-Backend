@@ -47,6 +47,14 @@ class WeekendEventSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'date', 'shift_name']
 
 
+class HolyDaySerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
+    class Meta:
+        model = Event
+        fields = ['id', 'user', 'date']
+
+
 class FreeDaySerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     

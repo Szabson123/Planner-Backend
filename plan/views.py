@@ -15,9 +15,10 @@ from django.db.models.signals import pre_save, post_save
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import Event, Shift, GeneratedPlanner, FreeDay, Availability, ShiftBackup, WeekendEvent
-from .serializers import EventSerializer, ShiftSerializer, AvailabilitySerializer, FreeDaySerializer, DataRangeSerializer, WeekendEventSerializer
+from .models import Event, Shift, GeneratedPlanner, FreeDay, Availability, ShiftBackup, WeekendEvent, HolyDay
+from .serializers import EventSerializer, ShiftSerializer, AvailabilitySerializer, FreeDaySerializer, DataRangeSerializer, WeekendEventSerializer, HolyDaySerializer
 
+from custom_user.models import CustomUser
 
 class EventViewSet(viewsets.ModelViewSet):
     serializer_class = EventSerializer
@@ -47,6 +48,27 @@ class ShiftViewSet(viewsets.ModelViewSet):
 class WeekendEventViewSet(viewsets.ModelViewSet):
     serializer_class = WeekendEventSerializer
     queryset = WeekendEvent.objects.select_related('shift', 'user').all()
+    
+class HolyDayViewSet(viewsets.ModelViewSet):
+    serializer_class = HolyDaySerializer
+    queryset = HolyDay.objects.all()
+    
+    def perform_create(self, serializer):
+        holy_day_data = serializer.validated_data
+        name = holy_day_data.get('name')
+        date = holy_day_data.get('date')
+        
+        # Kiedyś jak będą grupy dodać filtr po grupie
+        users = CustomUser.objects.all()
+        
+        holy_days = []
+        
+        for user in users:
+            holy_day = HolyDay(user=user, name=name, date=date)
+            holy_days.append(holy_day)
+
+        HolyDay.objects.bulk_create(holy_days)
+        
 
 
 class FreeDayViewSet(viewsets.ModelViewSet):
@@ -106,7 +128,7 @@ class GeneratePlannerView(APIView):
     def post(self, request, *args, **kwargs):
         today = datetime.now().date()
         year = today.year
-        month = today.month + 1  # Zawsze generujemy na kolejny miesiąc
+        month = today.month
         
         if month > 12:
             month = 1
@@ -160,12 +182,14 @@ class GeneratePlannerView(APIView):
                     if backup:
                         backup.users.set(users)
 
-                def generate_events_for_day(date, is_weekend):
+                def generate_events_for_day(date, is_weekend, is_holyday):
                     for shift in shifts:
                         users = shift.users.all()
                         shift_start_time, shift_end_time = shift_hours[shift.id]
                         for user in users:
-                            if is_weekend:
+                            if is_holyday:
+                                continue
+                            elif is_weekend:
                                 weekend_event = WeekendEvent(
                                     user=user,
                                     date=date,
@@ -189,11 +213,13 @@ class GeneratePlannerView(APIView):
                     if current_date.weekday() == 0:
                         for shift in shifts:
                             shift_hours[shift.id] = rotate_working_hours(*shift_hours[shift.id])
+                            
+                    is_holyday = HolyDay.objects.filter(date=current_date).exists()
 
                     if current_date.weekday() < 5:
-                        generate_events_for_day(current_date, is_weekend=False)
+                        generate_events_for_day(current_date, is_weekend=False, is_holyday=is_holyday)
                     else:
-                        generate_events_for_day(current_date, is_weekend=True)
+                        generate_events_for_day(current_date, is_weekend=True, is_holyday=is_holyday)
 
                 Event.objects.bulk_create(generated_events, batch_size=1000)
                 WeekendEvent.objects.bulk_create(generated_weekends, batch_size=1000)
