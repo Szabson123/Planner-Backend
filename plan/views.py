@@ -128,7 +128,7 @@ class GeneratePlannerView(APIView):
     def post(self, request, *args, **kwargs):
         today = datetime.now().date()
         year = today.year
-        month = today.month + 2 #TUTAJ KONTROLA KTÓRY MIESIĄC GENERUJEMY
+        month = today.month + 3 #TUTAJ KONTROLA KTÓRY MIESIĄC GENERUJEMY
         
         if month > 12:
             month = 1
@@ -209,9 +209,9 @@ class GeneratePlannerView(APIView):
                                 )
                                 generated_events.append(event)
 
-                # Rotowanie godzin i generowanie grafików na każdy dzień miesiąca
                 for day in range(1, num_days_in_month + 1):
                     current_date = datetime(year, month, day).date()
+                    is_last_sunday = current_date.weekday() == 6 and day == num_days_in_month
 
                     if current_date.weekday() == 0:
                         for shift in shifts:
@@ -223,6 +223,10 @@ class GeneratePlannerView(APIView):
                         generate_events_for_day(current_date, is_weekend=False, is_holyday=is_holyday)
                     else:
                         generate_events_for_day(current_date, is_weekend=True, is_holyday=is_holyday)
+                    
+                    if is_last_sunday:
+                        for shift in shifts:
+                            shift_hours[shift.id] = rotate_working_hours(*shift_hours[shift.id])
 
                 Event.objects.bulk_create(generated_events, batch_size=1000)
                 WeekendEvent.objects.bulk_create(generated_weekends, batch_size=1000)
