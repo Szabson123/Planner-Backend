@@ -128,7 +128,7 @@ class GeneratePlannerView(APIView):
     def post(self, request, *args, **kwargs):
         today = datetime.now().date()
         year = today.year
-        month = today.month + 3 #TUTAJ KONTROLA KTÓRY MIESIĄC GENERUJEMY
+        month = today.month + 4 #TUTAJ KONTROLA KTÓRY MIESIĄC GENERUJEMY
         
         if month > 12:
             month = 1
@@ -158,7 +158,6 @@ class GeneratePlannerView(APIView):
             else:
                 shift_hours[shift.id] = (shift.start_time, shift.end_time)
 
-        # Logika generowania grafików
         try:
             with transaction.atomic():
                 
@@ -212,8 +211,10 @@ class GeneratePlannerView(APIView):
                 for day in range(1, num_days_in_month + 1):
                     current_date = datetime(year, month, day).date()
                     is_last_sunday = current_date.weekday() == 6 and day == num_days_in_month
+                    is_last_saturday = current_date.weekday() == 5 and day == num_days_in_month
+                    is_first_sunday = current_date.weekday() == 6 and day == 1
 
-                    if current_date.weekday() == 0:
+                    if current_date.weekday() == 0 or is_first_sunday:
                         for shift in shifts:
                             shift_hours[shift.id] = rotate_working_hours(*shift_hours[shift.id])
                             
@@ -224,7 +225,7 @@ class GeneratePlannerView(APIView):
                     else:
                         generate_events_for_day(current_date, is_weekend=True, is_holyday=is_holyday)
                     
-                    if is_last_sunday:
+                    if is_last_sunday or is_last_saturday:
                         for shift in shifts:
                             shift_hours[shift.id] = rotate_working_hours(*shift_hours[shift.id])
 
@@ -245,7 +246,7 @@ class GeneratePlannerView(APIView):
 def restore_plan(request):
     today = datetime.now().date()
     year = today.year
-    month = today.month + 2
+    month = today.month + 3
     if month > 12:
         month = 1
         year += 1
