@@ -30,6 +30,7 @@ class Event(models.Model):
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE, null=True, blank=True)
     start_time = models.TimeField(null=True, blank=True)
     end_time = models.TimeField(null=True, blank=True)
+    overtime = models.FloatField(null=True, blank=True, default=0)
 
     def __str__(self):
         return f"{self.user.username} - {self.date}"

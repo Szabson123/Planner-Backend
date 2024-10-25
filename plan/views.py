@@ -22,7 +22,23 @@ from .serializers import EventSerializer, ShiftSerializer, AvailabilitySerialize
 class EventViewSet(viewsets.ModelViewSet):
     serializer_class = EventSerializer
     queryset = Event.objects.select_related('shift', 'user').all()
-
+    
+    @action(detail=True, methods=['POST'])
+    def add_overtime(self, request, pk=None):
+        event = self.get_object()
+        overtime = request.data.get('overtime')
+        
+        if overtime == None:
+            return Response({"error": "Musisz podać nadgodziny"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            overtime_value = int(overtime)
+            event.overtime = overtime_value
+            event.save()
+            return Response({'status': 'Nadgodizny Dodane'}, status=status.HTTP_200_OK)
+        except ValueError:
+            return Response({'error': 'Invalid overtime value.'}, status=status.HTTP_400_BAD_REQUEST)
+        
 
 class ShiftViewSet(viewsets.ModelViewSet):
     serializer_class = ShiftSerializer
@@ -96,18 +112,15 @@ class GeneratePlannerView(APIView):
             month = 1
             year += 1
 
-        # Sprawdzenie, czy grafik już istnieje dla danego miesiąca
         if GeneratedPlanner.objects.filter(year=year, month=month).exists():
             return Response({"detail": "Grafik na ten miesiąc został już wygenerowany."}, status=status.HTTP_400_BAD_REQUEST)
 
         num_days_in_month = days_in_month(year, month)
 
-        # Optymalizacja: użycie prefetch_related, aby pobrać powiązanych użytkowników jednym zapytaniem
         shifts = Shift.objects.prefetch_related('users').all()
         generated_events = []
         generated_weekends = []
 
-        # Pobieranie ostatnich eventów zmian jednym zapytaniem
         last_day_of_prev_month = datetime(year, month, 1) - timedelta(days=1)
         events_on_last_day = Event.objects.filter(date=last_day_of_prev_month).select_related('shift')
         shift_last_events = {}
@@ -121,13 +134,11 @@ class GeneratePlannerView(APIView):
             if last_shift_event:
                 shift_hours[shift.id] = (last_shift_event.start_time, last_shift_event.end_time)
             else:
-                # Ustaw domyślne godziny startowe dla zmiany, jeśli brak eventów z poprzedniego miesiąca
                 shift_hours[shift.id] = (shift.start_time, shift.end_time)
 
         # Logika generowania grafików
         try:
             with transaction.atomic():
-                # Backup zmian przed aktualizacją
                 shift_backups = []
                 shift_backup_users = {}
                 for shift in shifts:
@@ -140,10 +151,8 @@ class GeneratePlannerView(APIView):
                     shift_backups.append(backup)
                     shift_backup_users[shift.name] = shift.users.all()
 
-                # Masowe tworzenie kopii zapasowych zmian
                 ShiftBackup.objects.bulk_create(shift_backups)
 
-                # Przypisanie użytkowników do kopii zapasowych
                 backups = ShiftBackup.objects.filter(name__in=[shift.name for shift in shifts])
                 backup_dict = {backup.name: backup for backup in backups}
                 for name, users in shift_backup_users.items():
@@ -151,7 +160,6 @@ class GeneratePlannerView(APIView):
                     if backup:
                         backup.users.set(users)
 
-                # Funkcja generująca eventy dla danego dnia
                 def generate_events_for_day(date, is_weekend):
                     for shift in shifts:
                         users = shift.users.all()
@@ -178,17 +186,15 @@ class GeneratePlannerView(APIView):
                 for day in range(1, num_days_in_month + 1):
                     current_date = datetime(year, month, day).date()
 
-                    if current_date.weekday() == 0:  # Jeśli poniedziałek, rotujemy godziny dla każdej zmiany
+                    if current_date.weekday() == 0:
                         for shift in shifts:
                             shift_hours[shift.id] = rotate_working_hours(*shift_hours[shift.id])
 
-                    # Dni robocze (poniedziałek-piątek) lub weekendy
                     if current_date.weekday() < 5:
                         generate_events_for_day(current_date, is_weekend=False)
                     else:
                         generate_events_for_day(current_date, is_weekend=True)
 
-                # Zbiorcze zapisywanie eventów i grafików weekendowych z użyciem batch_size
                 Event.objects.bulk_create(generated_events, batch_size=1000)
                 WeekendEvent.objects.bulk_create(generated_weekends, batch_size=1000)
                 GeneratedPlanner.objects.create(year=year, month=month)
