@@ -128,7 +128,7 @@ class GeneratePlannerView(APIView):
     def post(self, request, *args, **kwargs):
         today = datetime.now().date()
         year = today.year
-        month = today.month + 4 #TUTAJ KONTROLA KTÓRY MIESIĄC GENERUJEMY
+        month = today.month + 2
         
         if month > 12:
             month = 1
@@ -160,30 +160,6 @@ class GeneratePlannerView(APIView):
 
         try:
             with transaction.atomic():
-                
-                ShiftBackup.objects.all().delete()
-                
-                shift_backups = []
-                shift_backup_users = {}
-                for shift in shifts:
-                    backup = ShiftBackup(
-                        start_time=shift.start_time,
-                        end_time=shift.end_time,
-                        name=shift.name,
-                        description=shift.description,
-                    )
-                    shift_backups.append(backup)
-                    shift_backup_users[shift.name] = shift.users.all()
-
-                ShiftBackup.objects.bulk_create(shift_backups)
-
-                backups = ShiftBackup.objects.filter(name__in=[shift.name for shift in shifts])
-                backup_dict = {backup.name: backup for backup in backups}
-                for name, users in shift_backup_users.items():
-                    backup = backup_dict.get(name)
-                    if backup:
-                        backup.users.set(users)
-
                 def generate_events_for_day(date, is_weekend, is_holyday):
                     for shift in shifts:
                         users = shift.users.all()
@@ -236,7 +212,6 @@ class GeneratePlannerView(APIView):
         except Exception as e:
             return Response({"detail": f"Błąd podczas generowania grafików: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # Zwróć wygenerowane grafiki
         serializer = EventSerializer(generated_events, many=True)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -246,7 +221,7 @@ class GeneratePlannerView(APIView):
 def restore_plan(request):
     today = datetime.now().date()
     year = today.year
-    month = today.month + 3
+    month = today.month + 2
     if month > 12:
         month = 1
         year += 1
@@ -255,29 +230,6 @@ def restore_plan(request):
             Event.objects.filter(date__year=year, date__month=month).delete()
             WeekendEvent.objects.filter(date__year=year, date__month=month).delete()
 
-            backups = ShiftBackup.objects.all()
-            
-            existing_shift_names = Shift.objects.values_list('name', flat=True)
-            for backup in backups:
-                if backup.name in existing_shift_names:
-                    shift = Shift.objects.get(name=backup.name)
-                    shift.start_time = backup.start_time
-                    shift.end_time = backup.end_time
-                    shift.description = backup.description
-                    shift.save()
-                    shift.users.set(backup.users.all())
-                else:
-                    shift = Shift.objects.create(
-                        start_time=backup.start_time,
-                        end_time=backup.end_time,
-                        name=backup.name,
-                        description=backup.description
-                    )
-                    shift.users.set(backup.users.all())
-
-            backups.delete()
-
-            # Usunięcie wpisu GeneratedPlanner dla tego miesiąca
             GeneratedPlanner.objects.filter(year=year, month=month).delete()
 
     except Exception as e:
