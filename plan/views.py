@@ -33,7 +33,25 @@ class EventViewSet(viewsets.ModelViewSet):
             return Response({'status': 'Nadgodizny Dodane'}, status=status.HTTP_200_OK)
         except ValueError:
             return Response({'error': 'Invalid overtime value.'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=True, methods=['POST'])
+    def change_event_to_freeday(self, request, pk=None):
+        event = self.get_object()
+        user = event.user
+        date = event.date
         
+        events_to_delete = Event.objects.filter(user=user, date=date)
+        events_deleted_count = events_to_delete.count()
+        events_to_delete.delete()
+        
+        reason = request.data.get('reason', 'Brak powodu')
+        free_day, created = FreeDay.objects.get_or_create(user=user, date=date, defaults={'reason': reason})
+        
+        if created:
+            return Response({'status': 'Zmienione na dzień wolny'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'error': 'Dzień wolny już istnieje'}, status=status.HTTP_400_BAD_REQUEST)
+            
 
 class ShiftViewSet(viewsets.ModelViewSet):
     serializer_class = ShiftSerializer

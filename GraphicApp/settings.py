@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     # 
     'custom_user',
     'plan',
+    'machine',
 ]
 
 MIDDLEWARE = [

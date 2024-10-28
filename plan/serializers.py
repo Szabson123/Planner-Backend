@@ -60,7 +60,7 @@ class FreeDaySerializer(serializers.ModelSerializer):
     
     class Meta:
         model = FreeDay
-        fields = ['id', 'user', 'date']
+        fields = ['id', 'user', 'date', 'reason']
         
 
 class AvailabilitySerializer(serializers.ModelSerializer):
