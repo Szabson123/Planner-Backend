@@ -6,16 +6,10 @@ from rest_framework.response import Response
 from rest_framework.decorators import action, api_view
 
 from django.db import transaction
-from django.db.models.signals import pre_save, post_save
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
 
-from datetime import datetime, timedelta
-from django.db.models.signals import pre_save, post_save
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
+from datetime import datetime, timedelta, time
 
-from .models import Event, Shift, GeneratedPlanner, FreeDay, Availability, ShiftBackup, WeekendEvent, HolyDay
+from .models import Event, Shift, GeneratedPlanner, FreeDay, Availability, WeekendEvent, HolyDay
 from .serializers import EventSerializer, ShiftSerializer, AvailabilitySerializer, FreeDaySerializer, DataRangeSerializer, WeekendEventSerializer, HolyDaySerializer
 
 from custom_user.models import CustomUser
@@ -128,7 +122,7 @@ class GeneratePlannerView(APIView):
     def post(self, request, *args, **kwargs):
         today = datetime.now().date()
         year = today.year
-        month = today.month + 2
+        month = today.month + 1
         
         if month > 12:
             month = 1
@@ -161,6 +155,25 @@ class GeneratePlannerView(APIView):
         try:
             with transaction.atomic():
                 def generate_events_for_day(date, is_weekend, is_holyday):
+                    central_users = CustomUser.objects.filter(is_central=True)
+                    for user in central_users:
+                        if is_holyday:
+                            continue
+                        elif is_weekend:
+                            weekend_event = WeekendEvent(
+                                user=user,
+                                date=date,
+                            )
+                            generated_weekends.append(weekend_event)
+                        else:
+                            event = Event(
+                                user=user,
+                                date=date,
+                                start_time=time(7, 30),
+                                end_time=time(15, 30),
+                            )
+                            generated_events.append(event)
+
                     for shift in shifts:
                         users = shift.users.all()
                         shift_start_time, shift_end_time = shift_hours[shift.id]
@@ -221,7 +234,7 @@ class GeneratePlannerView(APIView):
 def restore_plan(request):
     today = datetime.now().date()
     year = today.year
-    month = today.month + 2
+    month = today.month + 1
     if month > 12:
         month = 1
         year += 1
