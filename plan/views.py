@@ -67,7 +67,7 @@ class HolyDayViewSet(viewsets.ModelViewSet):
 
 class FreeDayViewSet(viewsets.ModelViewSet):
     serializer_class = FreeDaySerializer
-    queryset = FreeDay.objects.all()
+    queryset = FreeDay.objects.select_related('user').all()
 
     def create(self, request, *args, **kwargs):
         data_serializer = DataRangeSerializer(data=request.data)
@@ -76,14 +76,25 @@ class FreeDayViewSet(viewsets.ModelViewSet):
             end_date = data_serializer.validated_data['end_date']
             reason = data_serializer.validated_data['reason']
             user = request.user if request.user.is_authenticated else None
+            
+            if not user:
+                return Response({'error': 'User musi byc zalogowany'}, status=status.HTTP_400_BAD_REQUEST)
 
             if start_date > end_date:
                 return Response({'error': 'Start date must be before end date'}, status=status.HTTP_400_BAD_REQUEST)
-
             current_date = start_date
             free_days = []
 
             while current_date <= end_date:
+                if Event.objects.filter(user=user, date=current_date).exists():
+                    Event.objects.filter(user=user, date=current_date).delete()
+                if WeekendEvent.objects.filter(user=user, date=current_date).exists():
+                    WeekendEvent.objects.filter(user=user, date=current_date).delete()
+                if FreeDay.objects.filter(user=user, date=current_date).exists():
+                    FreeDay.objects.filter(user=user, date=current_date).delete()
+                if HolyDay.objects.filter(user=user, date=current_date).exists():
+                    HolyDay.objects.filter(user=user, date=current_date).delete()
+                    
                 free_day = FreeDay(user=user, date=current_date, reason=reason)
                 free_days.append(free_day)
                 current_date += timedelta(days=1)
