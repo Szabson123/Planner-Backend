@@ -22,6 +22,7 @@ class Review(models.Model):
 
 class MachineRareIssues(models.Model):
     machine = models.ForeignKey(Machine, on_delete=models.CASCADE)
+    name = models.CharField(max_length=255, default=None)
     data = models.DateField(null=True, blank=True)
     who_fixed = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     what_problem = models.TextField(null=True, blank=True)
@@ -31,6 +32,7 @@ class MachineRareIssues(models.Model):
 
 class MachineKnowHow(models.Model):
     machine = models.ForeignKey(Machine, on_delete=models.CASCADE)
+    name = models.CharField(max_length=255, default=None)
     added_data = models.DateField(auto_now_add=True, null=True, blank=True)
     how_to_do = models.TextField(null=True, blank=True)
     image = models.ForeignKey(MachinePictures, on_delete=models.DO_NOTHING, null=True, blank=True)
@@ -38,6 +40,7 @@ class MachineKnowHow(models.Model):
 
 class MachineCommonIssues(models.Model):
     machine = models.ForeignKey(Machine, on_delete=models.CASCADE)
+    name = models.CharField(max_length=255, default=None)
     added_data = models.DateField(auto_now_add=True, null=True, blank=True)
     who_to_call = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     what_problem = models.TextField(null=True, blank=True)

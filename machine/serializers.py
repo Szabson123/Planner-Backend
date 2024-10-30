@@ -20,3 +20,24 @@ class ReviewSerializer(serializers.ModelSerializer):
     def get_machine_name(self, obj):
         return obj.machine.name
     
+
+class MachineRareIssuesSerializer(serializers.ModelSerializer):
+    machine_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = MachineRareIssues
+        fields = ['id', 'name', 'data', 'what_problem', 'how_fix', 'machine_name']
+        
+    def get_machine_name(self, obj):
+        return obj.machine.name
+    
+
+class MachineCommonIssuesSerializer(serializers.ModelSerializer):
+    machine_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = MachineCommonIssues
+        fields = ['id', 'name', 'added_data', 'what_problem', 'how_fix', 'machine_name']
+        
+    def get_machine_name(self, obj):
+        return obj.machine.name

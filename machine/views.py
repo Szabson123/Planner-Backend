@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.generics import ListAPIView
 
 from .models import *
-from .serializers import MachineSerializer, ReviewSerializer
+from .serializers import MachineSerializer, ReviewSerializer, MachineRareIssuesSerializer, MachineCommonIssuesSerializer
 
 
 class MachineViewSet(viewsets.ModelViewSet):
@@ -42,3 +42,31 @@ class ReviewViewSet(viewsets.ModelViewSet):
         except Review.DoesNotExist:
             return Response({"error": "NIe istnieje"}, status=status.HTTP_400_BAD_REQUEST)
         
+
+class MachineRareIssuesViewSet(viewsets.ModelViewSet):
+    serializer_class = MachineRareIssuesSerializer
+    queryset = MachineRareIssues.objects.all()
+    
+    def perform_create(self, serializer):
+        machine_id = self.kwargs.get('machine_id')
+        machine = Machine.objects.get(id=machine_id)
+        
+        serializer.save(machine=machine)
+    
+    def get_queryset(self):
+        machine_id = self.kwargs.get('machine_id')
+        return MachineRareIssues.objects.filter(machine__id=machine_id)
+    
+    
+class MachineCommonIssuesViewSet(viewsets.ModelViewSet):
+    serializer_class = MachineCommonIssuesSerializer
+    queryset = MachineCommonIssues.objects.all()
+    
+    def perform_create(self, serializer):
+        machine_id = self.kwargs.get('machine_id')
+        machine = Machine.objects.get(id=machine_id)
+        return serializer.save(machine=machine)
+    
+    def get_queryset(self):
+        machine_id = self.kwargs.get('machine_id')
+        return MachineCommonIssues.objects.filter(machine__id=machine_id)

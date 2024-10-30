@@ -6,6 +6,8 @@ router = DefaultRouter()
 
 router.register('', MachineViewSet)
 router.register(r'(?P<machine_id>\d+)/reviews', ReviewViewSet, basename='reviews')
+router.register(r'(?P<machine_id>\d+)/rare_issues', MachineRareIssuesViewSet, basename='rare_issues')
+router.register(r'(?P<machine_id>\d+)/common_issues', MachineCommonIssuesViewSet, basename='common_issues')
 
 urlpatterns = [
     path('', include(router.urls)),
