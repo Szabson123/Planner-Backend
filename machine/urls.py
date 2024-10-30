@@ -9,4 +9,5 @@ router.register(r'(?P<machine_id>\d+)/reviews', ReviewViewSet, basename='reviews
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('reviews/all/', AllReviewsView.as_view(), name='all_reviews'),
 ]

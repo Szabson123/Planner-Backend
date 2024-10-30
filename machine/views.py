@@ -2,6 +2,7 @@ from django.shortcuts import render
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.generics import ListAPIView
 
 from .models import *
 from .serializers import MachineSerializer, ReviewSerializer
@@ -11,6 +12,11 @@ class MachineViewSet(viewsets.ModelViewSet):
     serializer_class = MachineSerializer
     queryset = Machine.objects.all()
     
+    
+class AllReviewsView(ListAPIView):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+        
     
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
@@ -35,4 +41,4 @@ class ReviewViewSet(viewsets.ModelViewSet):
             return Response({"status": "review changed"}, status=status.HTTP_200_OK)
         except Review.DoesNotExist:
             return Response({"error": "NIe istnieje"}, status=status.HTTP_400_BAD_REQUEST)
-            
+        
