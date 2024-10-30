@@ -11,12 +11,6 @@ class MachineViewSet(viewsets.ModelViewSet):
     serializer_class = MachineSerializer
     queryset = Machine.objects.all()
     
-    @action(detail=True, methods=['GET'])
-    def get_machine_reviews(self, request, pk=None):
-        reviews = Review.objects.filter(machine__id=pk)
-        serializer = ReviewSerializer(reviews, many=True)
-        return Response(serializer.data)
-
     
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
@@ -26,4 +20,19 @@ class ReviewViewSet(viewsets.ModelViewSet):
         machine_id = self.kwargs.get('machine_id')
         machine = Machine.objects.get(id=machine_id)
         serializer.save(machine=machine)
+    
+    def get_queryset(self):
+        machine_id = self.kwargs.get('machine_id')
+        return Review.objects.filter(machine__id=machine_id)
+
         
+    @action(detail=True, methods=['POST'], serializer_class=None)
+    def change_to_true_false(self, request, pk=None, machine_id=None):
+        try:
+            review = self.get_object()
+            review.done = not review.done
+            review.save()
+            return Response({"status": "review changed"}, status=status.HTTP_200_OK)
+        except Review.DoesNotExist:
+            return Response({"error": "NIe istnieje"}, status=status.HTTP_400_BAD_REQUEST)
+            

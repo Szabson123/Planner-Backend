@@ -5,9 +5,8 @@ from .views import *
 router = DefaultRouter()
 
 router.register('', MachineViewSet)
-router.register('reviews', ReviewViewSet)
+router.register(r'(?P<machine_id>\d+)/reviews', ReviewViewSet, basename='reviews')
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('machines/<int:machine_id>/reviews/', ReviewViewSet.as_view({'post': 'create'}), name='machine-reviews')
 ]
