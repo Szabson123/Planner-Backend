@@ -17,6 +17,7 @@ class Review(models.Model):
     machine = models.ForeignKey(Machine, on_delete=models.CASCADE)
     date = models.DateField(null=True, blank=True)
     description = models.TextField(null=True, blank=True)
+    done = models.BooleanField(default=False)
 
 
 class MachineRareIssues(models.Model):

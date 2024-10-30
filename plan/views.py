@@ -61,6 +61,7 @@ class WeekendEventViewSet(viewsets.ModelViewSet):
     serializer_class = WeekendEventSerializer
     queryset = WeekendEvent.objects.select_related('shift', 'user').all()
     
+    
 class HolyDayViewSet(viewsets.ModelViewSet):
     serializer_class = HolyDaySerializer
     queryset = HolyDay.objects.all()
@@ -110,8 +111,8 @@ class FreeDayViewSet(viewsets.ModelViewSet):
                     WeekendEvent.objects.filter(user=user, date=current_date).delete()
                 if FreeDay.objects.filter(user=user, date=current_date).exists():
                     FreeDay.objects.filter(user=user, date=current_date).delete()
-                if HolyDay.objects.filter(user=user, date=current_date).exists():
-                    HolyDay.objects.filter(user=user, date=current_date).delete()
+                # if HolyDay.objects.filter(user=user, date=current_date).exists():
+                #     HolyDay.objects.filter(user=user, date=current_date).delete()
                     
                 free_day = FreeDay(user=user, date=current_date, reason=reason)
                 free_days.append(free_day)
