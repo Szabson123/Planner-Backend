@@ -48,7 +48,18 @@ class MachineKnowHowSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = MachineKnowHow
-        fields = ['id', 'machine_name', 'added_data', 'how_to_do']
+        fields = ['id', 'machine_name', 'name' ,'added_data', 'how_to_do']
     
     def get_machine_name(self, obj):
         return obj.machine.name
+    
+# READ
+class MachineWholeinfoSerializer(serializers.ModelSerializer):
+    review = ReviewSerializer(read_only=True, many=True)
+    common = MachineCommonIssuesSerializer(read_only=True, many=True)
+    knowhow = MachineKnowHowSerializer(read_only=True, many=True)
+    rare = MachineRareIssuesSerializer(read_only=True, many=True)
+    
+    class Meta:
+        model = Machine
+        fields = ['id', 'name', 'location', 'description', 'review', 'common', 'knowhow', 'rare']

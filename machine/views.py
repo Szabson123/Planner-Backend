@@ -5,12 +5,18 @@ from rest_framework.response import Response
 from rest_framework.generics import ListAPIView
 
 from .models import *
-from .serializers import MachineSerializer, ReviewSerializer, MachineRareIssuesSerializer, MachineCommonIssuesSerializer, MachineKnowHowSerializer
+from .serializers import MachineSerializer, ReviewSerializer, MachineRareIssuesSerializer, MachineCommonIssuesSerializer, MachineKnowHowSerializer, MachineWholeinfoSerializer
 
 
 class MachineViewSet(viewsets.ModelViewSet):
     serializer_class = MachineSerializer
     queryset = Machine.objects.all()
+    
+    @action(detail=True, methods=['GET'])
+    def with_items(self, request, pk=None):
+        machine = self.get_object()
+        serializer = MachineWholeinfoSerializer(machine)
+        return Response(serializer.data)
     
     
 class AllReviewsView(ListAPIView):
