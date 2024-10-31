@@ -61,6 +61,33 @@ class WeekendEventViewSet(viewsets.ModelViewSet):
     serializer_class = WeekendEventSerializer
     queryset = WeekendEvent.objects.select_related('shift', 'user').all()
     
+    @action(detail=True, methods=['POST'])
+    def change_weekend_to_event(self, request, pk=None):
+        weekend = self.get_object()
+        user = weekend.user
+        date = weekend.date
+        
+        start_time = request.data.get('start_time')
+        end_time = request.data.get('end_time')
+        
+        if not start_time or not end_time:
+            return Response({'error': 'Brakujące dane start_time lub end_time'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        weekend_to_delete = WeekendEvent.objects.filter(user=user, date=date)
+        weekend_to_delete.delete()
+        event, created = Event.objects.get_or_create(
+            user=user,
+            date=date,
+            start_time=start_time,
+            end_time=end_time,
+            shift=None
+        )
+        
+        if created:
+            return Response({'status': 'Zmienione na dzień pracujący'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'error': 'Dzień pracujący już istnieje'}, status=status.HTTP_400_BAD_REQUEST)
+    
     
 class HolyDayViewSet(viewsets.ModelViewSet):
     serializer_class = HolyDaySerializer
