@@ -138,8 +138,8 @@ class FreeDayViewSet(viewsets.ModelViewSet):
                     WeekendEvent.objects.filter(user=user, date=current_date).delete()
                 if FreeDay.objects.filter(user=user, date=current_date).exists():
                     FreeDay.objects.filter(user=user, date=current_date).delete()
-                # if HolyDay.objects.filter(user=user, date=current_date).exists():
-                #     HolyDay.objects.filter(user=user, date=current_date).delete()
+                if HolyDay.objects.filter(user=user, date=current_date).exists():
+                    HolyDay.objects.filter(user=user, date=current_date).delete()
                     
                 free_day = FreeDay(user=user, date=current_date, reason=reason)
                 free_days.append(free_day)
@@ -214,7 +214,7 @@ class GeneratePlannerView(APIView):
                 def generate_events_for_day(date, is_weekend, is_holyday):
                     central_users = CustomUser.objects.filter(is_central=True)
                     for user in central_users:
-                        if is_holyday:
+                        if is_holyday or FreeDay.objects.filter(date=current_date, user=user):
                             continue
                         elif is_weekend:
                             weekend_event = WeekendEvent(
@@ -235,7 +235,7 @@ class GeneratePlannerView(APIView):
                         users = shift.users.all()
                         shift_start_time, shift_end_time = shift_hours[shift.id]
                         for user in users:
-                            if is_holyday:
+                            if is_holyday or FreeDay.objects.filter(date=current_date, user=user):
                                 continue
                             elif is_weekend:
                                 weekend_event = WeekendEvent(
