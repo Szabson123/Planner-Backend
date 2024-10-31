@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.generics import ListAPIView
 
 from .models import *
-from .serializers import MachineSerializer, ReviewSerializer, MachineRareIssuesSerializer, MachineCommonIssuesSerializer
+from .serializers import MachineSerializer, ReviewSerializer, MachineRareIssuesSerializer, MachineCommonIssuesSerializer, MachineKnowHowSerializer
 
 
 class MachineViewSet(viewsets.ModelViewSet):
@@ -70,3 +70,18 @@ class MachineCommonIssuesViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         machine_id = self.kwargs.get('machine_id')
         return MachineCommonIssues.objects.filter(machine__id=machine_id)
+    
+    
+class MachinceKnowHowViewSet(viewsets.ModelViewSet):
+    serializer_class = MachineKnowHowSerializer
+    queryset = MachineKnowHow.objects.all()
+    
+    def perform_create(self, serializer):
+        machine_id = self.kwargs.get('machine_id')
+        machine = Machine.objects.get(id=machine_id)
+        
+        serializer.save(machine=machine)
+        
+    def get_queryset(self):
+        machine_id = self.kwargs.get('machine_id')
+        return MachineKnowHow.objects.filter(machine__id=machine_id)

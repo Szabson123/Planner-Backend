@@ -41,3 +41,14 @@ class MachineCommonIssuesSerializer(serializers.ModelSerializer):
         
     def get_machine_name(self, obj):
         return obj.machine.name
+    
+
+class MachineKnowHowSerializer(serializers.ModelSerializer):
+    machine_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = MachineKnowHow
+        fields = ['id', 'machine_name', 'added_data', 'how_to_do']
+    
+    def get_machine_name(self, obj):
+        return obj.machine.name
