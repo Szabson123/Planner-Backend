@@ -4,6 +4,7 @@ from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.decorators import action, api_view
+from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from django.db import transaction
 
@@ -17,6 +18,7 @@ from custom_user.models import CustomUser
 class EventViewSet(viewsets.ModelViewSet):
     serializer_class = EventSerializer
     queryset = Event.objects.select_related('shift', 'user').all()
+    permission_classes = [AllowAny]
     
     @action(detail=True, methods=['POST'])
     def add_overtime(self, request, pk=None):
@@ -97,13 +99,20 @@ class HolyDayViewSet(viewsets.ModelViewSet):
         holy_day_data = serializer.validated_data
         name = holy_day_data.get('name')
         date = holy_day_data.get('date')
-        
-        # Kiedyś jak będą grupy dodać filtr po grupie
+
         users = CustomUser.objects.all()
         
         holy_days = []
         
         for user in users:
+            if Event.objects.filter(user=user, date=date).exists():
+                Event.objects.filter(user=user, date=date).delete()
+            if WeekendEvent.objects.filter(user=user, date=date).exists():
+                WeekendEvent.objects.filter(user=user, date=date).delete()
+            if FreeDay.objects.filter(user=user, date=date).exists():
+                FreeDay.objects.filter(user=user, date=date).delete()
+            if HolyDay.objects.filter(user=user, date=date).exists():
+                HolyDay.objects.filter(user=user, date=date).delete()
             holy_day = HolyDay(user=user, name=name, date=date)
             holy_days.append(holy_day)
 

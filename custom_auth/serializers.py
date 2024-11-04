@@ -46,3 +46,12 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token = super().get_token(user)
         token['username'] = user.username
         return token
+    
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['id', 'username', 'first_name', 'last_name', 'email']
+        
+
+class LogoutSerializer(serializers.Serializer):
+    refresh = serializers.CharField()
