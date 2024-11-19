@@ -12,10 +12,11 @@ class MachineSerializer(serializers.ModelSerializer):
 
 class ReviewSerializer(serializers.ModelSerializer):
     machine_name = serializers.SerializerMethodField()
+    machine_id = serializers.IntegerField(source='machine.id', read_only=True)
     
     class Meta:
         model = Review
-        fields = ['id', 'machine_name' ,'date', 'description', 'done']
+        fields = ['id', 'machine_name' ,'date', 'description', 'done', 'machine_id']
         
     def get_machine_name(self, obj):
         return obj.machine.name
