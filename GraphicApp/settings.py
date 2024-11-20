@@ -43,11 +43,13 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'drf_spectacular',
     'corsheaders',
+    'django_filters',
     
     # 
     'custom_user',
     'plan',
     'machine',
+    'raport',
 ]
 
 MIDDLEWARE = [
@@ -155,6 +157,10 @@ REST_FRAMEWORK = {
     ],
     
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend'
+    ],
 }
 
 SPECTACULAR_SETTINGS = {

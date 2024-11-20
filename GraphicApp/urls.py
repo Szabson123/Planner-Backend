@@ -13,5 +13,6 @@ urlpatterns = [
     path('planner/', include('plan.urls')),
     path('users/', include('custom_user.urls')),
     path('auth/', include('custom_auth.urls')),
-    path('machines/', include('machine.urls'))
+    path('machines/', include('machine.urls')),
+    path('raport/', include('raport.urls'))
 ]
